@@ -33,6 +33,8 @@ public:
 
   vector<double> previous_path_x;
   vector<double> previous_path_y;
+  vector<double> new_path_x;
+  vector<double> new_path_y;
   double car_yaw;
   double speed; // this is for ego car from sensor
   double end_path_s;
@@ -58,7 +60,7 @@ public:
 
   float a;
 
-  float target_speed;
+  float target_speed = 49.5;
 
   int lanes_available;
 
@@ -90,6 +92,10 @@ public:
           vector<double> & map_waypoints_dx,
           vector<double> & map_waypoints_dy);
 
+  void create_keep_lane_points();
+  void create_prep_lane_change_points();
+  void create_lane_change_points();
+  void create_init_points();
   /**
   * Destructor
   */

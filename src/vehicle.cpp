@@ -97,7 +97,8 @@ void Vehicle::update_ego(int car_id, double car_x, double car_y, double car_s, d
   // debug stop
   //if(sim_step_count ++ > 200){ exit (0); };
 
-
+  new_path_x.clear();
+  new_path_y.clear();
   // update the ego target s to move 50m ahead
   this->goal_s += car_s;
   //this->s = car_s;
@@ -107,152 +108,162 @@ void Vehicle::update_ego(int car_id, double car_x, double car_y, double car_s, d
   }
 }
 
-void Vehicle::get_next_points(vector<double> &next_x_vals, vector<double> & next_y_vals, int next_lane){
+void Vehicle:: create_init_points(){
+  // JMT to speed up to 50MPH if there is no car in front in 1s
+  init_speedup = false;
+  cout << "detect the initial on road" << endl;
+  cout << "size " << previous_path_x.size() << "map way point size"<< map_waypoints_dy.size() << endl;
+  cout << "ego car lane " << lane << endl;
+  JMT_CFG init_speed_up;
+  init_speed_up.start = {car_s, 0, 0};
+  init_speed_up.end   = {car_s + 30, 15, 3};
+  lane = 1;
+  vector< double > jmt = JMT(init_speed_up.start, init_speed_up.end, 0.2);
+  double t_delta = 0.02;
+  vector<double> s_init;
+  for(int i = 1; i <= 10; i++){ // calculate the first 50 points to get speed up to 50MPH.
+    double t = ((double)(i)) * t_delta;
+    double s = (jmt[0] + jmt[1]*t + jmt[2]*t*t + jmt[3]*t*t*t + jmt[4] *t*t*t*t + jmt[5]*t*t*t*t*t);
+    vector<double> wpt = getXY(s,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
-  if(init_speedup){
-    // JMT to speed up to 50MPH if there is no car in front in 1s
-    init_speedup = false;
-    cout << "detect the initial on road" << endl;
-    cout << "size " << next_x_vals.size() << "map way point size"<< map_waypoints_dy.size() << endl;
-    cout << "ego car lane " << lane << endl;
-    JMT_CFG init_speed_up;
-    init_speed_up.start = {car_s, 0, 0};
-    init_speed_up.end   = {car_s + 30, 20, 3};
-    lane = 1;
-    vector< double > jmt = JMT(init_speed_up.start, init_speed_up.end, 1);
-    double t_delta = 0.02;
-    vector<double> s_init;
-    for(int i = 1; i <= 50; i++){ // calculate the first 50 points to get speed up to 50MPH.
-      double t = ((double)(i)) * t_delta;
-      double s = (jmt[0] + jmt[1]*t + jmt[2]*t*t + jmt[3]*t*t*t + jmt[4] *t*t*t*t + jmt[5]*t*t*t*t*t);
-      vector<double> wpt = getXY(s,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    new_path_x.push_back(wpt[0]);
+    new_path_y.push_back(wpt[1]);
+  }
+}
 
-      next_x_vals.push_back(wpt[0]);
-      next_y_vals.push_back(wpt[1]);
-    }
-  } else { // use the prejectory
+void::Vehicle::create_keep_lane_points(){
 
-    cout << "not in initial block" << endl;
-    int prev_size = previous_path_x.size();
-    cout << "previous_path_x is " << previous_path_x.size() << endl;
-    if(prev_size > 0){
-      car_s = end_path_s; // previous last point s
-    }
-    // create a list of widely spaced(x, y) waypoints, evenly spaced at 30m
-    // later will interoplate these waypoints with a spline and fill it in with more points that control speed
-    vector<double> ptsx;
-    vector<double> ptsy;
+  cout << "not in initial block" << endl;
+  int prev_size = previous_path_x.size();
+  cout << "previous_path_x is " << previous_path_x.size() << endl;
+  if(prev_size > 0){
+    car_s = end_path_s; // previous last point s
+  }
+  // create a list of widely spaced(x, y) waypoints, evenly spaced at 30m
+  // later will interoplate these waypoints with a spline and fill it in with more points that control speed
+  vector<double> ptsx;
+  vector<double> ptsy;
 
-    // reference x, y, yaw states// either will reference the starting points as where the car is or at previous end states
-    double ref_x = car_x;
-    double ref_y = car_y;
-    double ref_yaw = deg2rad(car_yaw);
+  // reference x, y, yaw states// either will reference the starting points as where the car is or at previous end states
+  double ref_x = car_x;
+  double ref_y = car_y;
+  double ref_yaw = deg2rad(car_yaw);
 
-    cout << "car_s " << car_s << " car_x " << car_x << " car_y " << car_y << " yaw " << car_yaw << endl;
-    // if previoius size is almost empty, use the car as starting reference
-    if(prev_size < 2){
-      // use two points that make the path tangent to the car
-      double prev_car_x = car_x - cos(car_yaw);
-      double prev_car_y = car_y - sin(car_yaw);
-      ptsx.push_back(prev_car_x);
-      ptsx.push_back(car_x);
+  cout << "car_s " << car_s << " car_x " << car_x << " car_y " << car_y << " yaw " << car_yaw << endl;
+  // if previoius size is almost empty, use the car as starting reference
+  if(prev_size < 2){
+    // use two points that make the path tangent to the car
+    double prev_car_x = car_x - cos(car_yaw);
+    double prev_car_y = car_y - sin(car_yaw);
+    ptsx.push_back(prev_car_x);
+    ptsx.push_back(car_x);
 
-      ptsy.push_back(prev_car_y);
-      ptsy.push_back(car_y);
+    ptsy.push_back(prev_car_y);
+    ptsy.push_back(car_y);
 
-    } else {
-      // redefine reference state as previous path end points
-      ref_x = previous_path_x[prev_size-1];
-      ref_y = previous_path_y[prev_size-1];
+  } else {
+    // redefine reference state as previous path end points
+    ref_x = previous_path_x[prev_size-1];
+    ref_y = previous_path_y[prev_size-1];
 
-      double ref_x_prev = previous_path_x[prev_size-2];
-      double ref_y_prev = previous_path_y[prev_size-2];
-      ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
+    double ref_x_prev = previous_path_x[prev_size-2];
+    double ref_y_prev = previous_path_y[prev_size-2];
+    ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
 
-      // use two points that make the path tangent to the previous path's end point
+    // use two points that make the path tangent to the previous path's end point
 
-      ptsx.push_back(ref_x_prev);
-      ptsx.push_back(ref_x);
+    ptsx.push_back(ref_x_prev);
+    ptsx.push_back(ref_x);
 
-      ptsy.push_back(ref_y_prev);
-      ptsy.push_back(ref_y);
-    }
-    cout << "lane " << lane << endl;
-    // in Frenet add evenly 30m spaced points ahead of the startig reference
-    vector<double> next_wp0 = getXY(car_s+30,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-    vector<double> next_wp1 = getXY(car_s+60,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-    vector<double> next_wp2 = getXY(car_s+90,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    ptsy.push_back(ref_y_prev);
+    ptsy.push_back(ref_y);
+  }
+  cout << "lane " << lane << endl;
+  // in Frenet add evenly 30m spaced points ahead of the startig reference
+  vector<double> next_wp0 = getXY(car_s+30,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+  vector<double> next_wp1 = getXY(car_s+60,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+  vector<double> next_wp2 = getXY(car_s+90,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
-    ptsx.push_back(next_wp0[0]);
-    ptsx.push_back(next_wp1[0]);
-    ptsx.push_back(next_wp2[0]);
+  ptsx.push_back(next_wp0[0]);
+  ptsx.push_back(next_wp1[0]);
+  ptsx.push_back(next_wp2[0]);
 
-    ptsy.push_back(next_wp0[1]);
-    ptsy.push_back(next_wp1[1]);
-    ptsy.push_back(next_wp2[1]);
+  ptsy.push_back(next_wp0[1]);
+  ptsy.push_back(next_wp1[1]);
+  ptsy.push_back(next_wp2[1]);
 
-    for(int i = 0; i < ptsx.size(); i++){
-      // shift car reference angle to 0 degrees
-      double shift_x = ptsx[i]-ref_x;
-      double shift_y = ptsy[i]-ref_y;
-      ptsx[i] = (shift_x*cos(0-ref_yaw) - shift_y*sin(0-ref_yaw));
-      ptsy[i] = (shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw));
+  for(int i = 0; i < ptsx.size(); i++){
+    // shift car reference angle to 0 degrees
+    double shift_x = ptsx[i]-ref_x;
+    double shift_y = ptsy[i]-ref_y;
+    ptsx[i] = (shift_x*cos(0-ref_yaw) - shift_y*sin(0-ref_yaw));
+    ptsy[i] = (shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw));
 
-      cout << ptsx[i] << endl;
-    }
+    cout << ptsx[i] << endl;
+  }
 
-    // create a spline
-    tk::spline s;
+  // create a spline
+  tk::spline s;
 
-    // set(x, y) points to the spline
-    s.set_points(ptsx, ptsy);
-    cout << "after spline initialiation" << endl;
-    //int next_wp = NextWaypoint(car_x,car_y, car_yaw, map_waypoints_x, map_waypoints_y);
+  // set(x, y) points to the spline
+  s.set_points(ptsx, ptsy);
+  cout << "after spline initialiation" << endl;
+  //int next_wp = NextWaypoint(car_x,car_y, car_yaw, map_waypoints_x, map_waypoints_y);
 
-    // std::cout << "next_wp " << 0 << std::endl;
-    // std::cout << "previous_path_x size = " << previous_path_x.size() << std::endl;
+  // std::cout << "next_wp " << 0 << std::endl;
+  // std::cout << "previous_path_x size = " << previous_path_x.size() << std::endl;
 
-    for(int i = 0; i < previous_path_x.size(); i++){
-      next_x_vals.push_back(previous_path_x[i]);
-      next_y_vals.push_back(previous_path_y[i]);
-    }
+  for(int i = 0; i < previous_path_x.size(); i++){
+    new_path_x.push_back(previous_path_x[i]);
+    new_path_y.push_back(previous_path_y[i]);
+  }
 
-    // calculate how to break up spline points so that we can travel at our desired reference velocity
-    double target_x = 30.0;
-    double target_y = s(target_x);
-    double target_dist = sqrt((target_x)*target_x+ target_y*target_y);
+  // calculate how to break up spline points so that we can travel at our desired reference velocity
+  double target_x = 30.0;
+  double target_y = s(target_x);
+  double target_dist = sqrt((target_x)*target_x+ target_y*target_y);
 
-    double x_add_on = 0.0;
+  double x_add_on = 0.0;
 
-    // fill up the rest of our path planner after filling it with previous points. here we always output 50 points
-    for(int i = 1; i <= 50-previous_path_x.size(); i++){
-      double N = (target_dist/(.02*ref_vel/2.24));  // mph to meter/h for 2.24
-      double x_point = x_add_on + target_x/N;
-      double y_point = s(x_point);
+  // fill up the rest of our path planner after filling it with previous points. here we always output 50 points
+  for(int i = 1; i <= 50-previous_path_x.size(); i++){
+    double N = (target_dist/(.02*ref_vel/2.24));  // mph to meter/h for 2.24
+    double x_point = x_add_on + target_x/N;
+    double y_point = s(x_point);
 
-      x_add_on = x_point;
-      double x_ref = x_point;
-      double y_ref = y_point;
+    x_add_on = x_point;
+    double x_ref = x_point;
+    double y_ref = y_point;
 
-      // rotate back to normal after rotatig it early
-      x_point = (x_ref*cos(ref_yaw)-y_ref*sin(ref_yaw));
-      y_point = (x_ref*sin(ref_yaw)+y_ref*cos(ref_yaw));
+    // rotate back to normal after rotatig it early
+    x_point = (x_ref*cos(ref_yaw)-y_ref*sin(ref_yaw));
+    y_point = (x_ref*sin(ref_yaw)+y_ref*cos(ref_yaw));
 
-      x_point += ref_x;
-      y_point += ref_y;
+    x_point += ref_x;
+    y_point += ref_y;
 
-      next_x_vals.push_back(x_point);
-      next_y_vals.push_back(y_point);
-
-    }
+    new_path_x.push_back(x_point);
+    new_path_y.push_back(y_point);
 
   }
 
-  // for(int i = 0; i < next_x_vals.size(); i++){
-  //   cout << "i= " << i<< "next_x_vals  " << next_x_vals[i] << "next_y_vals " << next_y_vals[i] << endl;
-  //
-  // }
+}
 
+void Vehicle::create_prep_lane_change_points(){
+
+}
+
+void Vehicle::create_lane_change_points(){
+
+
+}
+
+void Vehicle::get_next_points(vector<double> &next_x_vals, vector<double> & next_y_vals, int next_lane){
+
+  for(int i = 0; i < new_path_x.size(); i++){
+    next_x_vals.push_back(new_path_x[i]);
+    next_y_vals.push_back(new_path_y[i]);
+  }
 }
 
 Vehicle::~Vehicle() {}
@@ -557,17 +568,29 @@ void Vehicle::realize_next_state(vector<Vehicle> trajectory) {
     Sets state and kinematics for ego vehicle using the last state of the trajectory.
     */
     Vehicle next_state = trajectory[1];
-    this->state = next_state.state;
+    //this->state = next_state.state;
 
     cout << " ***************** lane selection for next state" << endl;
     cout << " current state: " << state << "; new state:" << next_state.state << endl;
+
+
+      if(init_speedup){
+        create_init_points();
+        init_speedup = false;
+      } else if (state.compare("PLCL") == 0 || state.compare("PLCR") == 0 ||
+                 state.compare("KL") == 0 ) { // use the prejectory
+        create_keep_lane_points();// need to adjust the speed based on jmt
+      } else if( state.compare("LCR") == 0 || state.compare("LCL") == 0){
+        create_lane_change_points();
+      }
+
     // this->lane = next_state.lane;
     //
     // this->car_s = next_state.car_s;
     // this->v = next_state.v;
     // this->a = next_state.a;
-    this->lane = next_state.lane;
-    this->car_d = next_state.car_d;
+    // this->lane = next_state.lane;
+    // this->car_d = next_state.car_d;
 }
 
 void Vehicle::configure(vector<int> road_data) {

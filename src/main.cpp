@@ -169,7 +169,7 @@ int main() {
             trajectory[0].display("start projectory");
             trajectory[1].display("end   projector");
             ego.realize_next_state(trajectory);
-            ego.display("next state");
+            ego.display("choosing next state");
             ego.get_next_points(next_x_vals, next_y_vals, trajectory[1].lane);
 
 
