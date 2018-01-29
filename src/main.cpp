@@ -130,47 +130,92 @@ int main() {
 
             vehicles.push_back(ego);
 
-            cout << "############### neighbour car position start " << endl;
-            for(int i=0; i < sensor_fusion.size(); i++){
-              Vehicle other (sensor_fusion[i][0], // car_id
-                             sensor_fusion[i][1], // car_x
-                             sensor_fusion[i][2], // car_y
-                             sensor_fusion[i][3], // vx
-                             sensor_fusion[i][4], // vy
-                             sensor_fusion[i][5], // car_s
-                             sensor_fusion[i][6], // car_d
-                             0,                   // acceleration
-                             "CS"                 // state
-                            );
 
-              if(other.lane != -2) { // cars are not on lane 0,1,2 and not ego car(-1)
-                vehicles.push_back(other);
+            int prev_size = previous_path_x.size();
+            int lane = ego.lane;
+            cout << "ego lane " << ego.lane << endl;
+            if(prev_size > 0){
+              car_s = end_path_s; // previous last point s
+            }
+            bool too_close = false;
+            double ref_vel = 49.5;
+            // create ref_v for future use
+            for(int i =0; i < sensor_fusion.size(); i++){
+              // car in ego car lane
+              float d = sensor_fusion[i][6];
+              cout << "d for car " << d << "car_id " << sensor_fusion[i][0] << endl;
+              if(d < (2 + 4*lane+2) && d > (2+4*lane-2)){
+                cout << "found car " << sensor_fusion[i][0] << "on lane "<< lane<< endl;
+                double vx = sensor_fusion[i][3]; // x velocity
+                double vy = sensor_fusion[i][4]; // y velocity
+                double check_speed = sqrt(vx*vx+vy*vy); // magnitude of velocity
+                double check_car_s = sensor_fusion[i][5];
+                check_car_s += ((double) (prev_size) * .02 * check_speed);
+
+                if((check_car_s > car_s) && ((check_car_s-car_s) < 30)){
+                  // check the car s with car in front us. if the buffer 30 m then slow down or
+                  // consider change lane.
+
+                  ref_vel = check_speed; // mph
+                  too_close = true;
+
+                  // consider change lane or use JMT to slow down the ego car
+                }
               }
-
-              other.display("orig other car info::");
-            }
-            ego.display("ego car::");
-            cout << "############### car position end display()" << endl;
-            map<int ,vector<Vehicle> > predictions;
-            for(int i = 0 ; i < vehicles.size(); i++){
-              vector<Vehicle> preds = vehicles[i].generate_predictions();
-              predictions[vehicles[i].car_id] = preds;
             }
 
-            Vehicle temp_vehicle;
-                for (map<int, vector<Vehicle>>::iterator it = predictions.begin(); it != predictions.end(); ++it) {
-                    temp_vehicle = it->second[0];
 
-                    temp_vehicle.display("predicted car:: ");
+            // if(too_close){
+            //   ego.ref_vel = ref_vel;
+            // } else if(ego.ref_vel < 20){
+            //   ego.ref_vel += .224;
+            // }
+            vector<Vehicle> trajectory;
+            if(too_close){ // seek to change lane
+              cout << "############### neighbour car position start " << endl;
+              for(int i=0; i < sensor_fusion.size(); i++){
+                Vehicle other (sensor_fusion[i][0], // car_id
+                  sensor_fusion[i][1], // car_x
+                  sensor_fusion[i][2], // car_y
+                  sensor_fusion[i][3], // vx
+                  sensor_fusion[i][4], // vy
+                  sensor_fusion[i][5], // car_s
+                  sensor_fusion[i][6], // car_d
+                  0,                   // acceleration
+                  "CS"                 // state
+                );
+
+                if(other.lane != -2) { // cars are not on lane 0,1,2 and not ego car(-1)
+                  vehicles.push_back(other);
                 }
 
+                other.display("orig other car info::");
+              }
+              ego.display("ego car::");
+              cout << "############### car position end display()" << endl;
+              map<int ,vector<Vehicle> > predictions;
+              for(int i = 0 ; i < vehicles.size(); i++){
+                vector<Vehicle> preds = vehicles[i].generate_predictions();
+                predictions[vehicles[i].car_id] = preds;
+              }
 
-            vector<Vehicle> trajectory = ego.choose_next_state(predictions);
-            trajectory[0].display("start projectory");
-            trajectory[1].display("end   projector");
-            ego.realize_next_state(trajectory);
-            ego.display("choosing next state");
-            ego.get_next_points(next_x_vals, next_y_vals, trajectory[1].lane);
+              Vehicle temp_vehicle;
+              for (map<int, vector<Vehicle>>::iterator it = predictions.begin(); it != predictions.end(); ++it) {
+                temp_vehicle = it->second[0];
+                temp_vehicle.display("predicted car:: ");
+              }
+
+              trajectory = ego.choose_next_state(predictions);
+              trajectory[0].display("start projectory");
+              trajectory[1].display("end   projector");
+              ego.realize_next_state(trajectory);
+
+            }else{
+              if(ego.init_speedup) { ego.create_init_points(); }
+              else {ego.create_keep_lane_points();}
+            }
+
+            ego.get_next_points(next_x_vals, next_y_vals);
 
 
 

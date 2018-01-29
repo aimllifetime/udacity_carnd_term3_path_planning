@@ -70,6 +70,9 @@ public:
 
   int goal_s = 50; // from current position s to future s = 50 to see if there is any car in front us
 
+  double lane_change_goal = -1;
+  bool lane_change_start = false;
+  bool lane_change_end = false;
   double ref_vel = 49.5; // MPH
   string state;
 
@@ -92,9 +95,10 @@ public:
           vector<double> & map_waypoints_dx,
           vector<double> & map_waypoints_dy);
 
+  void same_lane_speed_control();
   void create_keep_lane_points();
   void create_prep_lane_change_points();
-  void create_lane_change_points();
+  void create_lane_change_points(vector<Vehicle> trajectory);
   void create_init_points();
   /**
   * Destructor
@@ -129,7 +133,7 @@ public:
 
   void realize_next_state(vector<Vehicle> trajectory);
 
-  void get_next_points(vector<double> &next_x_vals, vector<double> & next_y_vals, int next_lane);
+  void get_next_points(vector<double> &next_x_vals, vector<double> & next_y_vals);
 
   void configure(vector<int> road_data);
 
