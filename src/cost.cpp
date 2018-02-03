@@ -7,7 +7,23 @@
 
 const float REACH_GOAL = pow(10, 6);
 const float EFFICIENCY = pow(10, 5);
+const float COLLISION = pow(10, 7);
 
+float collision_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions, map<string, float> & data){
+
+  // for (map<int, vector<Vehicle>>::iterator it = predictions.begin(); it != predictions.end(); ++it) {
+  //
+  // }
+  float abs_distance = abs(trajectory[1].car_s - vehicle.car_s);
+  if(trajectory[1].car_s > vehicle.car_s &&  abs_distance < 25)
+  {
+    cout << "collision_cost " << abs_distance << endl;
+    return abs_distance;
+  }
+
+  return 0.0;
+
+}
 
 float goal_distance_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions, map<string, float> & data) {
     /*
@@ -16,11 +32,13 @@ float goal_distance_cost(const Vehicle & vehicle, const vector<Vehicle> & trajec
     */
     float cost;
     float distance = data["distance_to_goal"];
+    cout << "goal_distance_cost " << distance << "intended_lane " << data["intended_lane"] << " final_lane " << data["final_lane"] << endl;
     if (distance > 0) {
         cost = 1 - 2*exp(-(abs(2.0*vehicle.goal_lane - data["intended_lane"] - data["final_lane"]) / distance));
     } else {
         cost = 1;
     }
+    cout<< "goal_distance_cost " << cost << endl;
     return cost;
 }
 
@@ -28,6 +46,7 @@ float inefficiency_cost(const Vehicle & vehicle, const vector<Vehicle> & traject
     /*
     Cost becomes higher for trajectories with intended lane and final lane that have traffic slower than vehicle's target speed.
     */
+
 
     float proposed_speed_intended = lane_speed(predictions, data["intended_lane"]);
     if (proposed_speed_intended < 0) {
@@ -38,9 +57,9 @@ float inefficiency_cost(const Vehicle & vehicle, const vector<Vehicle> & traject
     if (proposed_speed_final < 0) {
         proposed_speed_final = vehicle.target_speed;
     }
-
+    cout << "target_speed " << vehicle.target_speed << "proposed_speed_final " << proposed_speed_final << " proposed_speed_intended " << proposed_speed_intended << endl;
     float cost = (2.0*vehicle.target_speed - proposed_speed_intended - proposed_speed_final)/vehicle.target_speed;
-
+    cout << "inefficiency_cost " << cost << endl;
     return cost;
 }
 
@@ -68,8 +87,9 @@ float calculate_cost(const Vehicle & vehicle, const map<int, vector<Vehicle>> & 
     float cost = 0.0;
 
     //Add additional cost functions here.
-    vector< function<float(const Vehicle & , const vector<Vehicle> &, const map<int, vector<Vehicle>> &, map<string, float> &)>> cf_list = {goal_distance_cost, inefficiency_cost};
-    vector<float> weight_list = {REACH_GOAL, EFFICIENCY};
+    vector< function<float(const Vehicle & , const vector<Vehicle> &, const map<int, vector<Vehicle>> &, map<string, float> &)>> cf_list =
+                {goal_distance_cost, inefficiency_cost, collision_cost};
+    vector<float> weight_list = {REACH_GOAL, EFFICIENCY, COLLISION };
 
     for (int i = 0; i < cf_list.size(); i++) {
         float new_cost = weight_list[i]*cf_list[i](vehicle, trajectory, predictions, trajectory_data);
@@ -102,8 +122,11 @@ map<string, float> get_helper_data(const Vehicle & vehicle, const vector<Vehicle
         intended_lane = trajectory_last.lane;
     }
 
-    float distance_to_goal = vehicle.goal_s - trajectory_last.car_s;
-    float final_lane = trajectory_last.lane;
+    float distance_to_goal = 5000; // vehicle.goal_s- trajectory_last.car_s;
+    //float final_lane = trajectory_last.lane;
+    float final_lane = intended_lane;
+    trajectory_last.display(" trajectory end pos: ");
+    cout << "intended_lane " << intended_lane << " final_lane " << final_lane << endl;
     trajectory_data["intended_lane"] = intended_lane;
     trajectory_data["final_lane"] = final_lane;
     trajectory_data["distance_to_goal"] = distance_to_goal;

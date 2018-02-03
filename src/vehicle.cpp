@@ -37,7 +37,7 @@ Vehicle::Vehicle(int car_id, double car_x, double car_y, double vx, double vy, d
   this->car_s = car_s;
   this->car_d = car_d;
   this->acc = acc;
-  if(car_d > 0 and car_d <= 4){
+  if(car_d > 0 && car_d <= 4){
     this->lane = 0;
   } else if(car_d > 4 && car_d <= 8){
     this->lane = 1;
@@ -67,6 +67,7 @@ void Vehicle::update_ego(int car_id, double car_x, double car_y, double car_s, d
         vector<double> & map_waypoints_dx,
         vector<double> & map_waypoints_dy)
 {
+  cout << "update ego" << endl;
   this->car_id = car_id;
   this->car_x = car_x;
   this->car_y = car_y;
@@ -74,6 +75,7 @@ void Vehicle::update_ego(int car_id, double car_x, double car_y, double car_s, d
   this->car_d = car_d;
   this->car_yaw = yaw;
   this->speed = speed;
+  this->v = speed;
   this->previous_path_x = previous_path_x;
   this->previous_path_y = previous_path_y;
   this->end_path_s = end_path_s;
@@ -83,11 +85,15 @@ void Vehicle::update_ego(int car_id, double car_x, double car_y, double car_s, d
   this->map_waypoints_s = map_waypoints_s;
   this->map_waypoints_dx = map_waypoints_dx;
   this->map_waypoints_dy = map_waypoints_dy;
-  if(car_d > 0 and car_d <= 4){
+  cout << "update_ego:: car_d " << car_d << endl;
+  if(car_d > 0.0 && car_d <= 4.0){
     this->lane = 0;
-  } else if(car_d > 4 && car_d <= 8){
+    cout << "update lane to 0" << endl;
+  } else if(car_d > 4.0 && car_d <= 8.0){
     this->lane = 1;
-  } else if(car_d > 8 && car_d <= 12){
+    cout << "update lane to 1" << endl;
+  } else if(car_d > 8.0 && car_d <= 12.0){
+    cout << "update lane to 2" << endl;
     this->lane = 2;
   } else{
     cout << "found invalid lane " << car_d << endl;
@@ -100,11 +106,12 @@ void Vehicle::update_ego(int car_id, double car_x, double car_y, double car_s, d
   new_path_x.clear();
   new_path_y.clear();
   // update the ego target s to move 50m ahead
-  this->goal_s += car_s;
+
+  this->goal_s = 5000 ; // car_s + 50;
   //this->s = car_s;
-  if(init_speedup){
-    this->lane = 1;
-  }
+  // if(init_speedup){
+  //   this->lane = 1;
+  // }
 }
 
 void Vehicle::same_lane_speed_control(){
@@ -151,19 +158,20 @@ void Vehicle:: create_init_points(){
   init_speedup = false;
   cout << "detect the initial on road" << endl;
   cout << "size " << previous_path_x.size() << "map way point size"<< map_waypoints_dy.size() << endl;
-  cout << "ego car lane " << lane << endl;
+  cout << "ego car lane " << lane << " car_s " << car_s << " car_d " << car_d << endl;
   JMT_CFG init_speed_up;
-  init_speed_up.start = {car_s, 0, 0};
-  init_speed_up.end   = {car_s + 30, 15, 3};
-  lane = 1;
-  vector< double > jmt = JMT(init_speed_up.start, init_speed_up.end, 0.2);
+  init_speed_up.start = {car_s, 0, 10};
+  init_speed_up.end   = {car_s + 122.5125, 49.5, 10};
+  lane = 1.0;
+  vector< double > jmt = JMT(init_speed_up.start, init_speed_up.end, 4.95);
   double t_delta = 0.02;
   vector<double> s_init;
-  for(int i = 1; i <= 10; i++){ // calculate the first 50 points to get speed up to 50MPH.
+  for(int i = 0; i < 247; i++){ // calculate the first 50 points to get speed up to 50MPH.
     double t = ((double)(i)) * t_delta;
     double s = (jmt[0] + jmt[1]*t + jmt[2]*t*t + jmt[3]*t*t*t + jmt[4] *t*t*t*t + jmt[5]*t*t*t*t*t);
-    vector<double> wpt = getXY(s,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-    cout << "point " << wpt[0] << "  " << wpt[1] << endl;
+    cout << " New s " << s << " input s " << car_s;
+    vector<double> wpt = getXY(s, car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    cout << " point x: " << wpt[0] << " y: " << wpt[1] << endl;
     new_path_x.push_back(wpt[0]);
     new_path_y.push_back(wpt[1]);
   }
@@ -172,7 +180,7 @@ void Vehicle:: create_init_points(){
 
 
 
-void::Vehicle::create_keep_lane_points(){
+void::Vehicle::create_keep_lane_points(double lane){
 
   //same_lane_speed_control();
 
@@ -221,7 +229,7 @@ void::Vehicle::create_keep_lane_points(){
     ptsy.push_back(ref_y_prev);
     ptsy.push_back(ref_y);
   }
-  cout << "lane " << lane << endl;
+  cout << "spline lane " << lane << endl;
   // in Frenet add evenly 30m spaced points ahead of the startig reference
   vector<double> next_wp0 = getXY(car_s+30,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
   vector<double> next_wp1 = getXY(car_s+60,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
@@ -242,7 +250,7 @@ void::Vehicle::create_keep_lane_points(){
     ptsx[i] = (shift_x*cos(0-ref_yaw) - shift_y*sin(0-ref_yaw));
     ptsy[i] = (shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw));
 
-    cout << ptsx[i] << endl;
+    cout << "debug spline" << ptsx[i] << " " << ptsy[i] << endl;
   }
 
   // create a spline
@@ -270,7 +278,10 @@ void::Vehicle::create_keep_lane_points(){
 
   // fill up the rest of our path planner after filling it with previous points. here we always output 50 points
   for(int i = 1; i <= 50-previous_path_x.size(); i++){
-    double N = (target_dist/(.02*ref_vel/2.24));  // mph to meter/h for 2.24
+    double N;
+
+    N = (target_dist/(.02*ref_vel/2.24));  // mph to meter/h for 2.24
+
     double x_point = x_add_on + target_x/N;
     double y_point = s(x_point);
 
@@ -288,52 +299,91 @@ void::Vehicle::create_keep_lane_points(){
     new_path_x.push_back(x_point);
     new_path_y.push_back(y_point);
 
+
   }
 
 }
 
-void Vehicle::create_prep_lane_change_points(){
+void Vehicle::create_prep_lane_change_points(vector<Vehicle> trajectory){
 
+  create_keep_lane_points(goal_lane);
+  return;
+  // // calcuate the points for 2 seconds. and append them in the LCR/LCL state. so this only calculate once during lane change
+  // int size = previous_path_x.size();
+  // cout << "trajectory size " << trajectory.size() << endl;
+  // if(!lane_change_start) {
+  //   if(size > 0) { car_s = end_path_s;}
+  //   lane_change_goal = car_s + 50;
+  //   lane_change_start = true;
+  //   for(int i =0; i < size; i++){
+  //     cout << "simulator point remains:: size " << i << " car_d " << car_d << " debug x " << previous_path_x[i] << " y " << previous_path_y[i] << endl;
+  //   }
+  //   //vector<double> starting_s_d = getFrenet(previous_path_x[size-1], previous_path_y[size-1], map_waypoints_x, map_way_points_y)
+  //   cout << "here 1" << endl;
+  //   JMT_CFG change_lane_d;
+  //   change_lane_d.start = {car_d, 0, 0};  // d, d dot, d dotdot
+  //   cout << "here 2" << "car_d " << car_d << " target lane " << trajectory[1].lane << endl;
+  //
+  //   //double lane = trajectory[1].lane;
+  //   //change_lane_d.end = {2.0*(double)trajectory[1].lane+2.0,  1.0, 0};
+  //   double change_lane_to;
+  //   if(state.compare("PLCL") == 0){ change_lane_to = lane - 1.0; } else{change_lane_to += 1.0;}
+  //   change_lane_d.end = {2.0 * change_lane_to + 2.0 ,  0.001, 0};
+  //   cout << "end lane " << change_lane_d.end[0];
+  //   cout << " before JMT called" << endl;
+  //   vector< double > jmt = JMT(change_lane_d.start, change_lane_d.end, 2);
+  //   cout << "after JMT called" << endl;
+  //   double t_delta = 0.02;
+  //
+  //   vector<double> d;
+  //   for(int i = 0; i < 100; i++){ // calculate rest of points to change lane
+  //     double t = ((double)(i)) * t_delta;
+  //     double dt = (jmt[0] + jmt[1]*t + jmt[2]*t*t + jmt[3]*t*t*t + jmt[4] *t*t*t*t + jmt[5]*t*t*t*t*t);
+  //     cout << "JMT d offset " << " i = " << i << " dt "<< dt << endl;
+  //     d.push_back(dt);
+  //   }
+  //
+  //   cout << " d delta JMT is done " << " car_s " << car_s << " goal_s " << goal_s << " ref_vel " << ref_vel << endl;
+  //   JMT_CFG change_lane_s;
+  //   change_lane_s.start = {car_s, ref_vel, 0};
+  //   change_lane_s.end = {(double)(car_s + 50.0), ref_vel, 0};
+  //   jmt = JMT(change_lane_s.start, change_lane_s.end, 2);
+  //
+  //
+  //   for(int i = 0; i < 100; i++){ // calculate rest of points to change lane
+  //     double t = ((double)(i)) * t_delta;
+  //     double s = (jmt[0] + jmt[1]*t + jmt[2]*t*t + jmt[3]*t*t*t + jmt[4] *t*t*t*t + jmt[5]*t*t*t*t*t);
+  //     vector<double> wpt = getXY(s,(d[i]), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+  //     cout << "calculating the chane lane point " << wpt[0] << "  " << wpt[1] << endl;
+  //     lane_change_ptx.push_back(wpt[0]);
+  //     lane_change_pty.push_back(wpt[1]);
+  //   }
+  // }
+  // lane_change_offset_idx = 0;
+  cout << "create_prep_lane_change_points is done" << "points created" << lane_change_pty.size()<< endl;
 }
 
 void Vehicle::create_lane_change_points(vector<Vehicle> trajectory){
-  int size = previous_path_x.size();
 
-  if(!lane_change_start) {
-    lane_change_goal = car_s + 50;
-    lane_change_start = true;
-  }
-
-
-  JMT_CFG change_lane_d;
-  change_lane_d.start = {car_d, 0, 0};  // d, d dot, d dotdot
-  change_lane_d.end = {(double)trajectory[1].lane, 1, 0};
-  vector< double > jmt = JMT(change_lane_d.start, change_lane_d.end, 1);
-  double t_delta = 0.02;
-
-  vector<double> d;
-  for(int i = 1; i <= 50-size; i++){ // calculate rest of points to change lane
-    double t = ((double)(i)) * t_delta;
-    double dt = (jmt[0] + jmt[1]*t + jmt[2]*t*t + jmt[3]*t*t*t + jmt[4] *t*t*t*t + jmt[5]*t*t*t*t*t);
-    d.push_back(dt);
-  }
-
-  JMT_CFG change_lane_s;
-  change_lane_s.start = {car_s, ref_vel, 0};
-  change_lane_s.end = {(double)goal_s, ref_vel, 0};
-  jmt = JMT(change_lane_s.start, change_lane_s.end, 1);
-
-
-  for(int i = 1; i <= 50-size; i++){ // calculate rest of points to change lane
-    double t = ((double)(i)) * t_delta;
-    double s = (jmt[0] + jmt[1]*t + jmt[2]*t*t + jmt[3]*t*t*t + jmt[4] *t*t*t*t + jmt[5]*t*t*t*t*t);
-    vector<double> wpt = getXY(s,(2+4*d[i]), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-    cout << "point " << wpt[0] << "  " << wpt[1] << endl;
-    new_path_x.push_back(wpt[0]);
-    new_path_y.push_back(wpt[1]);
-  }
-
-
+  create_keep_lane_points(goal_lane);
+  // int prev_size = previous_path_x.size();
+  //
+  // cout << "create_lane_change_points prev_size " << prev_size << "lane_change_offset_idx" << lane_change_offset_idx << endl;
+  //
+  // for(int i = 0; i < 50 - prev_size; i++ ){
+  //   if(lane_change_offset_idx < 100) {
+  //     new_path_x.push_back(lane_change_ptx[lane_change_offset_idx]);
+  //     new_path_y.push_back(lane_change_pty[lane_change_offset_idx]);
+  //     lane_change_offset_idx ++;
+  //   }
+  // }
+  //
+  //
+  // if(lane_change_offset_idx == 100){
+  //   cout << "all points for lane change are used up" << endl;
+  //   lane_change_end = true;
+  //   //if(new_path_x.size() )
+  // }
 
 }
 
@@ -342,7 +392,7 @@ void Vehicle::get_next_points(vector<double> &next_x_vals, vector<double> & next
   for(int i = 0; i < new_path_x.size(); i++){
     next_x_vals.push_back(new_path_x[i]);
     next_y_vals.push_back(new_path_y[i]);
-    cout << new_path_x[i] << "   : " << new_path_y[i] << endl;
+    cout << "get_next_points: " << new_path_x[i] << "   : " << new_path_y[i] << endl;
   }
 }
 
@@ -370,9 +420,9 @@ vector<Vehicle> Vehicle::choose_next_state(map<int, vector<Vehicle>> predictions
       float cost;
       vector<float> costs;
       vector<string> final_states;
-
+      cout << "choose_next_state called with current state" << state << endl;
       for (vector<string>::iterator it = states.begin(); it != states.end(); ++it) {
-
+        cout << " successor_states " << *it << endl;
           vector<Vehicle> trajectory = generate_trajectory(*it, predictions);
 
           if (trajectory.size() != 0) {
@@ -382,13 +432,15 @@ vector<Vehicle> Vehicle::choose_next_state(map<int, vector<Vehicle>> predictions
               cout << "trajectory size " << trajectory.size() << endl;
               cout << "next state " << *it << endl;
               cout << "cost "  << cost << "new lane "<< trajectory[1].lane << endl;
+              trajectory[0].display("trajectory 0: ");
+              trajectory[1].display("trajectory 1: ");
               final_trajectories.push_back(trajectory);
           }
       }
 
       vector<float>::iterator best_cost = min_element(begin(costs), end(costs));
       int best_idx = distance(begin(costs), best_cost);
-      cout << "best cost " << *best_cost << endl;
+      cout << "best cost " << *best_cost << "lane in trajectory" << final_trajectories[best_idx][1].lane << "state " << final_trajectories[best_idx][1].state << endl;
       return final_trajectories[best_idx];
     } else {
       return non_ego;
@@ -406,17 +458,17 @@ vector<string> Vehicle::successor_states() {
     string state = this->state;
     cout << "current state " << state << endl;
     if(state.compare("KL") == 0) {
-        states.push_back("PLCL");
-        states.push_back("PLCR");
+        if(lane == 1 || lane == 2) { states.push_back("PLCL");}
+        if(lane == 0 || lane == 1) { states.push_back("PLCR"); }
         cout << "pushed other two PLCL and PLCR" << endl;
     } else if (state.compare("PLCL") == 0) {
         //if (lane != lanes_available - 1) { // change to look forward not like one in class
-        if (lane != 0) {
+        if (lane > 0) {
             states.push_back("PLCL");
             states.push_back("LCL");
         }
     } else if (state.compare("PLCR") == 0) {
-        if (lane != 2) { // we total have 3 lane, 0, 1, 2. other two 0, 1 can change lane to right.
+        if (lane < 2) { // we total have 3 lane, 0, 1, 2. other two 0, 1 can change lane to right.
             states.push_back("PLCR");
             states.push_back("LCR");
         }
@@ -508,6 +560,7 @@ vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state, map<int, vect
     /*
     Generate a trajectory preparing for a lane change.
     */
+    cout << "prep_lane_change_trajectory is called with state: " << state << endl;
     float new_s;
     float new_v;
     float new_a;
@@ -536,7 +589,8 @@ vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state, map<int, vect
         new_a = best_kinematics[2];
     }
 
-    trajectory.push_back(Vehicle(this->car_id, this->lane, new_s, new_v, new_a, state));
+    //trajectory.push_back(Vehicle(this->car_id, this->lane, new_s, new_v, new_a, state));
+    trajectory.push_back(Vehicle(this->car_id, new_lane, new_s, new_v, new_a, state));
     return trajectory;
 }
 
@@ -545,6 +599,7 @@ vector<Vehicle> Vehicle::lane_change_trajectory(string state, map<int, vector<Ve
     Generate a lane change trajectory.
     */
     int new_lane = this->lane + lane_direction[state];
+    cout << "lane_change_trajectory called " << "this lane " << this->lane << "new_lane " << new_lane << endl;
     vector<Vehicle> trajectory;
     Vehicle next_lane_vehicle;
     //Check if a lane change is possible (check if another vehicle occupies that spot).
@@ -593,15 +648,15 @@ bool Vehicle::get_vehicle_ahead(map<int, vector<Vehicle>> predictions, int lane,
     Returns a true if a vehicle is found ahead of the current vehicle, false otherwise. The passed reference
     rVehicle is updated if a vehicle is found.
     */
-    int min_s = this->goal_s;
+    int min_s = car_s + 50; //this->goal_s;
     bool found_vehicle = false;
     //int cloest_s = 9999;
     Vehicle temp_vehicle;
     for (map<int, vector<Vehicle>>::iterator it = predictions.begin(); it != predictions.end(); ++it) {
         temp_vehicle = it->second[0];
         // cout << "prediction car_id " << it->first << " s " << temp_vehicle.s << " lane " << temp_vehicle.lane << endl;
-        temp_vehicle.display("prediction:: ");
-        if (temp_vehicle.lane == this->lane && temp_vehicle.car_s > this->car_s && temp_vehicle.car_s < min_s) {
+        temp_vehicle.display("prediction vehicle head:: ");
+        if (temp_vehicle.lane == this->lane && temp_vehicle.car_s > this->car_s && temp_vehicle.car_s < min_s && temp_vehicle.car_id != this->car_id) {
             min_s = temp_vehicle.car_s;
             rVehicle = temp_vehicle;
             found_vehicle = true;
@@ -647,6 +702,9 @@ void Vehicle::realize_next_state(vector<Vehicle> trajectory) {
     /*
     Sets state and kinematics for ego vehicle using the last state of the trajectory.
     */
+    if(this->state.compare("LCR") == 0 || state.compare("LCL") == 0){
+
+    }
     Vehicle next_state = trajectory[1];
     this->state = next_state.state;
 
@@ -654,10 +712,14 @@ void Vehicle::realize_next_state(vector<Vehicle> trajectory) {
     cout << " current state: " << state << "; new state:" << next_state.state << endl;
 
 
-    if(state.compare("PLCL") == 0 || state.compare("PLCR") == 0 ||
-    state.compare("KL") == 0 ) { // use the prejectory
-      create_keep_lane_points();// need to adjust the speed based on jmt
+    if(state.compare("PLCL") == 0 || state.compare("PLCR") == 0 ){
+      //create_prep_lane_change_points(trajectory);
+      create_keep_lane_points(lane);
+    }
+    else if(state.compare("KL") == 0 ) { // use the prejectory
+      create_keep_lane_points(lane);// need to adjust the speed based on jmt
     } else if( state.compare("LCR") == 0 || state.compare("LCL") == 0){
+      create_prep_lane_change_points(trajectory);
       create_lane_change_points(trajectory);
     }
 
@@ -683,7 +745,9 @@ void Vehicle::configure(vector<int> road_data) {
 }
 
 void Vehicle::display(string text){
-  cout << text << " state: " << state << " car_id " << car_id << " s= " << car_s << " lane = " << lane << " v " << v
+  cout << text << " state: " << state << " car_id " << car_id
+       << " car_d " << car_d
+       << " s= " << car_s << " lane = " << lane << " v " << v
           << " vx " << vx << " vy " << vy << endl;
   // cout << "car_id " << car_id << endl;
   // cout << "car_x "  << car_x << " car_y " << car_y << endl;

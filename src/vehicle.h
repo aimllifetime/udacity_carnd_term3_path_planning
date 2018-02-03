@@ -52,7 +52,7 @@ public:
 
   int preferred_buffer = 30; // impacts "keep lane" behavior.
 
-  int lane;
+  double lane;
 
   //int s;
 
@@ -73,10 +73,14 @@ public:
   double lane_change_goal = -1;
   bool lane_change_start = false;
   bool lane_change_end = false;
+  vector<double> lane_change_ptx;
+  vector<double> lane_change_pty;
+  int lane_change_offset_idx = 0;
   double ref_vel = 49.5; // MPH
   string state;
 
   int sim_step_count = 0;
+  vector<Vehicle> trajectory;
 
   /**
   * Constructor
@@ -96,8 +100,8 @@ public:
           vector<double> & map_waypoints_dy);
 
   void same_lane_speed_control();
-  void create_keep_lane_points();
-  void create_prep_lane_change_points();
+  void create_keep_lane_points(double lane);
+  void create_prep_lane_change_points(vector<Vehicle> trajectory);
   void create_lane_change_points(vector<Vehicle> trajectory);
   void create_init_points();
   /**
