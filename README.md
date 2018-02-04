@@ -5,8 +5,9 @@ Sample video is here: [report_video](./report_good.mov)
 
 
 
-Files are include in the submission:
-     src/main.cpp
+Files are include in the submission: 
+
+src/main.cpp
      src/cost.cpp
      src/cost.h
      src/vehcicle.cpp
