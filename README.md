@@ -35,11 +35,11 @@ Path planning:<br/>
 &nbsp; &nbsp; The alrogithm to calculate the next 50 points is using the spline alrogithm, the ego vehicle state determine to use the current lane or target lane to change.<br/>
 <br/>
 # Cost function:(in cost.cpp)<br/>
-&nbsp; &nbsp;     ** inefficiency cost** : calculate the lane change efficiency as follows:<br/>
+&nbsp; &nbsp;     * inefficiency cost * : calculate the lane change efficiency as follows:<br/>
 &nbsp; &nbsp;         cost = (2.0*vehicle.target_speed - proposed_speed_intended - proposed_speed_final)/vehicle.target_speed;<br/>
-&nbsp; &nbsp;      ** goal_distance_cost ** : calculate the cost to goal distance as follows:<br/>
+&nbsp; &nbsp;      *  goal_distance_cost * : calculate the cost to goal distance as follows:<br/>
 &nbsp; &nbsp;          1 - 2*exp(-(abs(2.0*vehicle.goal_lane - data["intended_lane"] - data["final_lane"]) / distance));<br/>
-&nbsp; &nbsp;      ** collision_cost**: calcualte if any collision happens on current lane or predicted lane.<br/>
+&nbsp; &nbsp;      *  collision_cost *: calcualte if any collision happens on current lane or predicted lane.<br/>
 &nbsp; &nbsp;          for collision on current lane, add cost "COLLISION"<br/>
 &nbsp; &nbsp;          for collison on predicted target lane, add 2*"COLLISION"<br/>
 &nbsp; &nbsp;          in this case, if change lane cause collison, vehicle will keep on current lane.<br/>
