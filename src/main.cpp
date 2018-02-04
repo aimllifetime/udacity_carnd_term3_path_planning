@@ -146,11 +146,18 @@ int main() {
             bool too_close = false;
             double front_car_speed = 0.0;
             double ref_vel = 49.5;
+
             // create ref_v for future use
             for(int i =0; i < sensor_fusion.size(); i++){
               // car in ego car lane
               float d = sensor_fusion[i][6];
-              cout << "main::check d for car " << d << " car_id " << sensor_fusion[i][0] << endl;
+              cout << "main::check d " << d << " car_id " << sensor_fusion[i][0] << " ego car_d " << car_d << endl;
+              double nei_car_s = sensor_fusion[i][5];
+              if( abs(d - car_d) < 3.5 && abs(car_s - nei_car_s) < 1){
+                cout << "collision on d " << endl;
+                //exit(0);
+              }
+
               if(d < (2 + 4*lane+2) && d > (2+4*lane-2)){
                 cout << "found car " << sensor_fusion[i][0] << "on lane "<< lane<< endl;
                 double vx = sensor_fusion[i][3]; // x velocity
@@ -158,9 +165,10 @@ int main() {
                 double check_speed = sqrt(vx*vx+vy*vy); // magnitude of velocity
                 double check_car_s = sensor_fusion[i][5];
                 check_car_s += ((double) (prev_size) * .02 * check_speed);
+                front_car_speed = check_speed ;
                 cout << "check_car_s " << check_car_s << " ego car s " << car_s << endl;
                 if(abs(check_car_s - car_s) < 1){
-                  cout << "collision happend" <<endl;
+                  cout << "collision happend" << endl;
                   exit(0);
                 }
                 if((check_car_s > car_s) && ((check_car_s-car_s) < 30)){
@@ -218,7 +226,7 @@ int main() {
 
             } else if(ego.state.compare("PLCL") == 0 || ego.state.compare("PLCR") == 0){
 
-              cout << "entering ego state " << ego.state << "create_prep_lane_change_points" << endl;
+              cout << "entering ego state " << ego.state << "create_prep_lane_change_points" << " ego lane "<< ego.lane << endl;
 
               // map<int ,vector<Vehicle> > predictions;
               // for(int i = 0 ; i < vehicles.size(); i++){
@@ -300,7 +308,13 @@ int main() {
 
 
             if(too_close){ // seek to change lane
-              if(ego.ref_vel > ref_vel && ego.ref_vel > 35) {
+              double speed_min;
+              if(ego.state.compare("KL") == 0 ){
+                speed_min = front_car_speed;
+              } else {
+                speed_min = 35;
+              }
+              if(ego.ref_vel > ref_vel && ego.ref_vel > front_car_speed) {
                 ego.ref_vel -= .224;
               } else{
                 ego.ref_vel += .224;

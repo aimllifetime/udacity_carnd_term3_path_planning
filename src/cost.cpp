@@ -11,17 +11,34 @@ const float COLLISION = pow(10, 7);
 
 float collision_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions, map<string, float> & data){
 
-  // for (map<int, vector<Vehicle>>::iterator it = predictions.begin(); it != predictions.end(); ++it) {
-  //
-  // }
-  float abs_distance = abs(trajectory[1].car_s - vehicle.car_s);
-  if(trajectory[1].car_s > vehicle.car_s &&  abs_distance < 25)
-  {
-    cout << "collision_cost " << abs_distance << endl;
-    return abs_distance;
+  // calculate if ego car is on another vehicle ahead or behind when change lane. keep 20m apart when change lane.
+  // use trajectory end lane for ego car lane.
+  float cost = 0.0;
+  int change_lane = trajectory[1].lane;
+  for (map<int, vector<Vehicle>>::const_iterator it = predictions.begin(); it != predictions.end(); ++it) {
+    for(int i = 0 ; i < 50 ; i++){
+      Vehicle pred_vehicle = it->second[i];
+      //cout << "check lane collision cost pred_vehicle lane " << pred_vehicle.lane << " trajectory lane " << trajectory[1].lane << endl;
+      if(pred_vehicle.lane == trajectory[1].lane &&
+        abs(vehicle.car_s + vehicle.v * (double) i * 0.02 - pred_vehicle.car_s) < 35 &&
+        pred_vehicle.car_id != vehicle.car_id){
+        cout << "collision cost: " << "pred lane " << pred_vehicle.lane << " trajectory lane " << trajectory[1].lane << endl;
+        cout << "ego s " << vehicle.car_s << " calcuated s " << vehicle.car_s + vehicle.v * (double) i * 0.02 << endl;
+        cout << "pred car_s " << pred_vehicle.car_s << endl;
+        cost += COLLISION;
+      }
+    }
   }
-
-  return 0.0;
+  //
+  // float abs_distance = abs(trajectory[1].car_s - vehicle.car_s);
+  // if(trajectory[1].car_s > vehicle.car_s &&  abs_distance < 25)
+  // {
+  //   cout << "collision_cost " << abs_distance << endl;
+  //   return abs_distance;
+  // }
+  //
+  // return 0.0;
+  return cost;
 
 }
 
@@ -115,9 +132,9 @@ map<string, float> get_helper_data(const Vehicle & vehicle, const vector<Vehicle
     float intended_lane;
 
     if (trajectory_last.state.compare("PLCL") == 0) {
-        intended_lane = trajectory_last.lane - 1; // change from class since lane count from center to right starting 0, 1, 2
+        intended_lane = trajectory_last.lane ; // change from class since lane count from center to right starting 0, 1, 2
     } else if (trajectory_last.state.compare("PLCR") == 0) {
-        intended_lane = trajectory_last.lane + 1;
+        intended_lane = trajectory_last.lane ;
     } else {
         intended_lane = trajectory_last.lane;
     }

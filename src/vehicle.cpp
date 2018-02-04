@@ -392,7 +392,7 @@ void Vehicle::get_next_points(vector<double> &next_x_vals, vector<double> & next
   for(int i = 0; i < new_path_x.size(); i++){
     next_x_vals.push_back(new_path_x[i]);
     next_y_vals.push_back(new_path_y[i]);
-    cout << "get_next_points: " << new_path_x[i] << "   : " << new_path_y[i] << endl;
+    //cout << "get_next_points: " << new_path_x[i] << "   : " << new_path_y[i] << endl;
   }
 }
 
@@ -673,26 +673,29 @@ vector<Vehicle> Vehicle::generate_predictions(int horizon) {
     cout << "generate prediction for car" << "horizon: " << horizon << endl;
     this->display("generate prediction before :: ");
 	  vector<Vehicle> predictions;
-    for(int i = 0; i < horizon; i++) {
-      float next_s = position_at(i);
-      float next_v = v;  //todo check if the v is constant for ego. can not tell for other neighbour cars
-      if (i < horizon-1) {
-        next_v = position_at(i+1) - car_s;
+    //for(int i = 0; i < horizon; i++) {
+      double delta_t = 0.02;
+      for(int j = 0 ; j < 50 ; j++){
+        float next_s = position_at((double) j * 0.02);
+        float next_v = v;
+        if(j == 49){
+          next_v = next_s - car_s;
+        }
+        Vehicle pred;
+        //predictions.push_back(Vehicle(this->car_id, this->car_x, this->car_y, this->vx, this->vy, this->car_s, this->car_d, 0, "CS" );
+        // this->lane, next_s, next_v, 0));
+
+        pred.lane = this->lane;
+        pred.car_s = next_s;
+        pred.v = next_v;
+        pred.car_d = this->car_d;
+        pred.car_id = this->car_id;
+        pred.speed = next_v;
+        pred.display("generate predictions new :: " );
+        predictions.push_back(pred);
       }
-      Vehicle pred;
-      //predictions.push_back(Vehicle(this->car_id, this->car_x, this->car_y, this->vx, this->vy, this->car_s, this->car_d, 0, "CS" );
-      // this->lane, next_s, next_v, 0));
 
-
-      pred.lane = this->lane;
-      pred.car_s = next_s;
-      pred.v = next_v;
-      pred.car_d = this->car_d;
-      pred.car_id = this->car_id;
-      pred.speed = this->speed;
-      pred.display("generate predictions new :: " );
-      predictions.push_back(pred);
-  	}
+  	//}
 
     return predictions;
 
