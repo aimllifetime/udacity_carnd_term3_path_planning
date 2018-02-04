@@ -15,6 +15,7 @@ Files are include in the submission:
 Implementation details:
 
 Path planning:
+```
     Use the state machine to track states between "KL", "PLCL", "PLCR", "LCR", "LCL"
     Psudo code is as follows: (this is in main.cpp)
       create list of vehicle on lanes of same side of road
@@ -28,6 +29,8 @@ Path planning:
       in Prepare change lane state, update the "goal lane" and then change state to "LCL" or "LCR"
 
       In "LCL" or "LCR", calculate the new path and determine if lane change to target lane.
+```
+      
 
 Prediction of vehicles:
     for every vehicle on the same side of road, calculate the next positions apart every 0.02 second.
@@ -51,7 +54,7 @@ Cost function:(in cost.cpp)
 Speed adjustment:
     if car is in "KL" and no way to change lane such as the cost of stay in current lane is minimum. then slow down the ego speed to front car speed plus 14m/s. this additional 14m/s is to avoid car to slow down too much and miss the chance to do lane change. of course, this number is not perfect, will need better methmatical calculation between current car speed and front car speed. this is left to future.
 
-    if car in "KL" and speed is lower than 49.5m/s then add 0.224 every sim tick.
+if car in "KL" and speed is lower than 49.5m/s then add 0.224 every sim tick.
 
 
 Note that Vehicle.cpp from class quiz is not naturally fit into this project. in the quiz, the car change lane directly and predicted position in unit of second. it needs a lots of additional change to fit into this project. such as, lane determination, lane numbering from 0, 1, 2, prepare the lane change vehicles, next state logic change.
