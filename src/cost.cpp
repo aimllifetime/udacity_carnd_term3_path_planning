@@ -23,9 +23,9 @@ float collision_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory
         abs(vehicle.car_s + vehicle.v * (double) i * 0.02 - pred_vehicle.car_s) < 30 &&
         pred_vehicle.car_id != vehicle.car_id
       ){
-        cout << "collision cost: " << "pred lane " << pred_vehicle.lane << " trajectory lane " << trajectory[1].lane << endl;
-        cout << "ego s " << vehicle.car_s << " calcuated s " << vehicle.car_s + vehicle.v * (double) i * 0.02 << endl;
-        cout << "pred car_s " << pred_vehicle.car_s << endl;
+        // cout << "collision cost: " << "pred lane " << pred_vehicle.lane << " trajectory lane " << trajectory[1].lane << endl;
+        // cout << "ego s " << vehicle.car_s << " calcuated s " << vehicle.car_s + vehicle.v * (double) i * 0.02 << endl;
+        // cout << "pred car_s " << pred_vehicle.car_s << endl;
         if(vehicle.lane == pred_vehicle.lane) {
           cost += COLLISION;
         } else{
@@ -54,13 +54,13 @@ float goal_distance_cost(const Vehicle & vehicle, const vector<Vehicle> & trajec
     */
     float cost;
     float distance = data["distance_to_goal"];
-    cout << "goal_distance_cost " << distance << "intended_lane " << data["intended_lane"] << " final_lane " << data["final_lane"] << endl;
+    //cout << "goal_distance_cost " << distance << "intended_lane " << data["intended_lane"] << " final_lane " << data["final_lane"] << endl;
     if (distance > 0) {
         cost = 1 - 2*exp(-(abs(2.0*vehicle.goal_lane - data["intended_lane"] - data["final_lane"]) / distance));
     } else {
         cost = 1;
     }
-    cout<< "goal_distance_cost " << cost << endl;
+    //cout<< "goal_distance_cost " << cost << endl;
     return cost;
 }
 
@@ -79,9 +79,9 @@ float inefficiency_cost(const Vehicle & vehicle, const vector<Vehicle> & traject
     if (proposed_speed_final < 0) {
         proposed_speed_final = vehicle.target_speed;
     }
-    cout << "target_speed " << vehicle.target_speed << "proposed_speed_final " << proposed_speed_final << " proposed_speed_intended " << proposed_speed_intended << endl;
+    //cout << "target_speed " << vehicle.target_speed << "proposed_speed_final " << proposed_speed_final << " proposed_speed_intended " << proposed_speed_intended << endl;
     float cost = (2.0*vehicle.target_speed - proposed_speed_intended - proposed_speed_final)/vehicle.target_speed;
-    cout << "inefficiency_cost " << cost << endl;
+    //cout << "inefficiency_cost " << cost << endl;
     return cost;
 }
 
@@ -147,8 +147,8 @@ map<string, float> get_helper_data(const Vehicle & vehicle, const vector<Vehicle
     float distance_to_goal = 5000; // vehicle.goal_s- trajectory_last.car_s;
     //float final_lane = trajectory_last.lane;
     float final_lane = intended_lane;
-    trajectory_last.display(" trajectory end pos: ");
-    cout << "intended_lane " << intended_lane << " final_lane " << final_lane << endl;
+    //trajectory_last.display(" trajectory end pos: ");
+    //cout << "intended_lane " << intended_lane << " final_lane " << final_lane << endl;
     trajectory_data["intended_lane"] = intended_lane;
     trajectory_data["final_lane"] = final_lane;
     trajectory_data["distance_to_goal"] = distance_to_goal;

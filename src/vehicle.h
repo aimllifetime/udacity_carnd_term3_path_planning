@@ -99,7 +99,7 @@ public:
           vector<double> & map_waypoints_dx,
           vector<double> & map_waypoints_dy);
 
-  void same_lane_speed_control();
+
   void create_keep_lane_points(double lane);
   void create_prep_lane_change_points(vector<Vehicle> trajectory);
   void create_lane_change_points(vector<Vehicle> trajectory);
