@@ -1,4 +1,5 @@
 
+
 Files are include in the submission:
      src/main.cpp
      src/cost.cpp
@@ -52,4 +53,3 @@ Speed adjustment:
 
 Note that Vehicle.cpp from class quiz is not naturally fit into this project. in the quiz, the car change lane directly and predicted position in unit of second. it needs a lots of additional change to fit into this project. such as, lane determination, lane numbering from 0, 1, 2, prepare the lane change vehicles, next state logic change.
 
-Notice some case might have collision. the best parameter to adjust the two collision distance guardband, 25m used in main.cpp and 30m used in collision_cost.(future work to have better calcualtion).
