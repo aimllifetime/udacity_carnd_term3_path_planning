@@ -1,7 +1,7 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
 
-Sample video is here: ![report_video](./report_good.mov)
+Sample video is here: [report_video](./report_good.mov)
 
 
 
