@@ -165,7 +165,7 @@ int main() {
                 double check_speed = sqrt(vx*vx+vy*vy); // magnitude of velocity
                 double check_car_s = sensor_fusion[i][5];
                 check_car_s += ((double) (prev_size) * .02 * check_speed);
-                front_car_speed = check_speed ;
+                //front_car_speed = check_speed ;
                 cout << "check_car_s " << check_car_s << " ego car s " << car_s << endl;
                 if(abs(check_car_s - car_s) < 1){
                   cout << "collision happend" << endl;
@@ -314,7 +314,12 @@ int main() {
               } else {
                 speed_min = 35;
               }
-              if(ego.ref_vel > ref_vel && ego.ref_vel > front_car_speed) {
+
+              if(ego.ref_vel > ref_vel && ego.ref_vel > speed_min) {
+                cout << "*** speed **** ego state " << ego.state << " ego ref_vel " << ego.ref_vel <<
+                " ref_vel " << ref_vel << " front_car_speed " << front_car_speed
+                <<  " speed_min " << speed_min << endl;
+
                 ego.ref_vel -= .224;
               } else{
                 ego.ref_vel += .224;
