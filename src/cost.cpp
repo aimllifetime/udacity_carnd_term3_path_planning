@@ -20,12 +20,17 @@ float collision_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory
       Vehicle pred_vehicle = it->second[i];
       //cout << "check lane collision cost pred_vehicle lane " << pred_vehicle.lane << " trajectory lane " << trajectory[1].lane << endl;
       if(pred_vehicle.lane == trajectory[1].lane &&
-        abs(vehicle.car_s + vehicle.v * (double) i * 0.02 - pred_vehicle.car_s) < 35 &&
-        pred_vehicle.car_id != vehicle.car_id){
+        abs(vehicle.car_s + vehicle.v * (double) i * 0.02 - pred_vehicle.car_s) < 30 &&
+        pred_vehicle.car_id != vehicle.car_id
+      ){
         cout << "collision cost: " << "pred lane " << pred_vehicle.lane << " trajectory lane " << trajectory[1].lane << endl;
         cout << "ego s " << vehicle.car_s << " calcuated s " << vehicle.car_s + vehicle.v * (double) i * 0.02 << endl;
         cout << "pred car_s " << pred_vehicle.car_s << endl;
-        cost += COLLISION;
+        if(vehicle.lane == pred_vehicle.lane) {
+          cost += COLLISION;
+        } else{
+          cost += 2.0*COLLISION;
+        }
       }
     }
   }

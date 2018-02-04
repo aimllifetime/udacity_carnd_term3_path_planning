@@ -171,11 +171,12 @@ int main() {
                   cout << "collision happend" << endl;
                   exit(0);
                 }
-                if((check_car_s > car_s) && ((check_car_s-car_s) < 30)){
+                if((check_car_s > car_s) && ((check_car_s-car_s) < 25)){
                   // check the car s with car in front us. if the buffer 30 m then slow down or
                   // consider change lane.
                   cout << " car in front of us distance:" << check_car_s-car_s << endl;
                   ref_vel = check_speed; // mph
+                  front_car_speed = check_speed ;
                   too_close = true;
 
                   // consider change lane or use JMT to slow down the ego car
@@ -267,7 +268,7 @@ int main() {
 
 
             } else if(ego.state.compare("KL") == 0){
-
+              cout << " Keep lane state " << "too_close " << too_close << endl;
               if(too_close){
                 map<int ,vector<Vehicle> > predictions;
                 for(int i = 0 ; i < vehicles.size(); i++){
@@ -286,6 +287,12 @@ int main() {
                 trajectory[1].display("end   projector");
                 ego.state = trajectory[1].state;
                 ego.trajectory = trajectory;
+                cout << "best new trajectory state " << ego.state << "ref_vel " << ref_vel << endl;
+                if(ego.state.compare("KL") == 0 ){
+                  if (ego.ref_vel > ref_vel + 14.0){ // not too slow compare to front car.
+                   ego.ref_vel -= .224;
+                  }
+                }
                 // if(trajectory[1].lane < ego.lane){
                 //   ego.state = "PLCL";
                 // }else if (trajectory[1].lane > ego.lane){
@@ -294,7 +301,9 @@ int main() {
 
                 ego.create_keep_lane_points(ego.lane);
               } else{
-
+                if (ego.ref_vel < 49.5) {
+                  ego.ref_vel += .224;
+                }
                 // if(ego.init_speedup) {
                 //
                 //   ego.create_init_points();
@@ -307,26 +316,26 @@ int main() {
             ego.get_next_points(next_x_vals, next_y_vals);
 
 
-            if(too_close){ // seek to change lane
-              double speed_min;
-              if(ego.state.compare("KL") == 0 ){
-                speed_min = front_car_speed;
-              } else {
-                speed_min = 35;
-              }
-
-              if(ego.ref_vel > ref_vel && ego.ref_vel > speed_min) {
-                cout << "*** speed **** ego state " << ego.state << " ego ref_vel " << ego.ref_vel <<
-                " ref_vel " << ref_vel << " front_car_speed " << front_car_speed
-                <<  " speed_min " << speed_min << endl;
-
-                ego.ref_vel -= .224;
-              } else{
-                ego.ref_vel += .224;
-              }
-            } else if (ego.ref_vel < 49.5){
-              ego.ref_vel += .224;
-            }
+            // if(too_close){ // seek to change lane
+            //   double speed_min;
+            //   if(ego.state.compare("KL") == 0 ){
+            //     speed_min = front_car_speed;
+            //   } else {
+            //     speed_min = 35;
+            //   }
+            //
+            //   if(ego.state.compare("KL") != 0 && ego.ref_vel > speed_min) {
+            //     cout << "*** speed **** ego state " << ego.state << " ego ref_vel " << ego.ref_vel <<
+            //     " ref_vel " << ref_vel << " front_car_speed " << front_car_speed
+            //     <<  " speed_min " << speed_min << endl;
+            //
+            //     ego.ref_vel -= .224;
+            //   } else if (ego.ref_vel < 49.5){
+            //     ego.ref_vel += .224;
+            //   }
+            // } else if (ego.ref_vel < 49.5){
+            //   ego.ref_vel += .224;
+            // }
 
           	//define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           	msgJson["next_x"] = next_x_vals;
