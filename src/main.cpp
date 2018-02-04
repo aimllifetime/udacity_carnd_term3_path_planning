@@ -158,7 +158,7 @@ int main() {
                 double check_car_s = sensor_fusion[i][5];
                 check_car_s += ((double) (prev_size) * .02 * check_speed);
 
-                if((check_car_s > car_s) && ((check_car_s-car_s) < 22)){
+                if((check_car_s > car_s) && ((check_car_s-car_s) < 24)){
                   // check the car s with car in front us. if the buffer 30 m then slow down or
                   // consider change lane.
                   ref_vel = check_speed; // mph
